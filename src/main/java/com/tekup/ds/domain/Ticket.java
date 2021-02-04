@@ -1,5 +1,6 @@
 package com.tekup.ds.domain;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -11,8 +12,7 @@ import java.time.LocalDateTime;
 import java.util.Set;
 
 @Entity
-@NoArgsConstructor @AllArgsConstructor
-@Getter @Setter
+@NoArgsConstructor @AllArgsConstructor @Getter @Setter
 public class Ticket implements Serializable {
     @Id
     @GeneratedValue
@@ -20,11 +20,12 @@ public class Ticket implements Serializable {
     private LocalDateTime date;
     private int nbCouvert;
     private double addition;
-
-    @ManyToOne(fetch = FetchType.EAGER)
+    @JsonBackReference(value = "table")
+    @ManyToOne(cascade = CascadeType.ALL, targetEntity = Table.class)
     private Table table;
 
-    @ManyToOne(fetch = FetchType.EAGER, cascade = CascadeType.MERGE)
+    @JsonBackReference(value = "client")
+    @ManyToOne(cascade = CascadeType.ALL)
     @JoinColumn(name="client_id")
     private Client client;
 

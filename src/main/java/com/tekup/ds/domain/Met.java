@@ -26,4 +26,6 @@ public class Met {
         this.nom = nom;
         this.prix = prix;
     }
+
+
 }

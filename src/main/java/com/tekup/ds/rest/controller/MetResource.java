@@ -3,7 +3,9 @@ package com.tekup.ds.rest.controller;
 import com.tekup.ds.domain.Met;
 import com.tekup.ds.domain.Ticket;
 import com.tekup.ds.domain.dto.MetDTO;
+import com.tekup.ds.domain.dto.PeriodeDTO;
 import com.tekup.ds.repository.MetRepository;
+import com.tekup.ds.repository.TicketRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -11,9 +13,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.transaction.Transactional;
 import javax.validation.Valid;
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 @RestController
 @RequestMapping("/api")
@@ -22,20 +22,13 @@ public class MetResource {
 
     private final Logger log = LoggerFactory.getLogger(MetResource.class);
 
-
     private final MetRepository metRepository;
-
-    public MetResource(MetRepository metRepository) {
+    private final TicketRepository ticketRepository;
+    public MetResource(MetRepository metRepository, TicketRepository ticketRepository) {
         this.metRepository = metRepository;
+        this.ticketRepository = ticketRepository;
     }
 
-    /**
-     * {@code POST  /mets} : Create a new met.
-     *
-     * @param met the met to create.
-     * @return the {@link ResponseEntity} with status {@code 201 (Created)} and with body the new met, or with status {@code 400 (Bad Request)} if the met has already an ID.
-     * @throws URISyntaxException if the Location URI syntax is incorrect.
-     */
     @PostMapping("/mets")
     public Met createMet(@Valid @RequestBody MetDTO metDTO)  {
         log.info("REST request to save Met : {}", metDTO.toString());
@@ -43,33 +36,6 @@ public class MetResource {
         return metRepository.save(met);
     }
 
-    /**
-     * {@code PUT  /mets} : Updates an existing met.
-     *
-     * @param met the met to update.
-     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body the updated met,
-     * or with status {@code 400 (Bad Request)} if the met is not valid,
-     * or with status {@code 500 (Internal Server Error)} if the met couldn't be updated.
-     * @throws URISyntaxException if the Location URI syntax is incorrect.
-     */
-//    @PutMapping("/mets")
-//    public ResponseEntity<Met> updateMet(@Valid @RequestBody Met met) throws URISyntaxException {
-//        log.debug("REST request to update Met : {}", met);
-//        if (met.getId() == null) {
-//            throw new BadRequestAlertException("Invalid id", ENTITY_NAME, "idnull");
-//        }
-//        Met result = metRepository.save(met);
-//        return ResponseEntity.ok()
-//                .headers(HeaderUtil.createEntityUpdateAlert(applicationName, false, ENTITY_NAME, met.getId().toString()))
-//                .body(result);
-//    }
-
-    /**
-     * {@code GET  /mets} : get all the mets.
-     *
-     * @param eagerload flag to eager load entities from relationships (This is applicable for many-to-many).
-     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and the list of mets in body.
-     */
     @GetMapping("/mets")
     public List<Met> getAllMets() {
         log.debug("REST request to get all Mets");
@@ -89,16 +55,62 @@ public class MetResource {
 
     }
 
-    /**
-     * {@code DELETE  /mets/:id} : delete the "id" met.
-     *
-     * @param id the id of the met to delete.
-     * @return the {@link ResponseEntity} with status {@code 204 (NO_CONTENT)}.
-     */
     @DeleteMapping("/mets/{id}")
     public void deleteMet(@PathVariable String id) {
         log.debug("REST request to delete Met : {}", id);
         metRepository.deleteById(id);
+    }
+
+    @PostMapping("/mets/bought")
+    public String mostBought(@RequestBody PeriodeDTO periodeDTO) {
+        List<String> list = new ArrayList<>();
+//        List<Ticket> tickets = ticketRepository.findByDateBetween(periodeDTO.from.atStartOfDay(), periodeDTO.to.atStartOfDay());
+        List<Ticket> tickets = ticketRepository.findAll();
+        tickets.forEach(ticket -> {
+            ticket.getMets().forEach(met -> list.add(met.getNom()));
+        });
+
+        Object[] objArr  = list.toArray();
+        String[] str = Arrays
+                .copyOf(objArr, objArr
+                                .length,
+                        String[].class);
+        return findWord(str);
+    }
+
+    static String findWord(String[] arr)
+    {
+
+        // Create HashMap to store word and it's frequency
+        HashMap<String, Integer> hs = new HashMap<String, Integer>();
+
+        // Iterate through array of words
+        for (int i = 0; i < arr.length; i++) {
+            // If word already exist in HashMap then increase it's count by 1
+            if (hs.containsKey(arr[i])) {
+                hs.put(arr[i], hs.get(arr[i]) + 1);
+            }
+            // Otherwise add word to HashMap
+            else {
+                hs.put(arr[i], 1);
+            }
         }
+
+        // Create set to iterate over HashMap
+        Set<Map.Entry<String, Integer> > set = hs.entrySet();
+        String key = "";
+        int value = 0;
+
+        for (Map.Entry<String, Integer> me : set) {
+            // Check for word having highest frequency
+            if (me.getValue() > value) {
+                value = me.getValue();
+                key = me.getKey();
+            }
+        }
+
+        // Return word having highest frequency
+        return key;
+    }
 
 }
